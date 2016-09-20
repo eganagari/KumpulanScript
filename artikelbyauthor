@@ -1,0 +1,105 @@
+<style type="text/css">
+.author-line     {margin: 3px 0;}
+.author-avatar   {vertical-align:middle;}
+</style>
+<script type="text/javascript">
+// widget blogger.com jumlah postingan author dengan avatar menurut penulis pertama,// 
+var maxUserNameLength = 42; // 0: jika ingin ditampilkan semua//
+var txtAuthorLine = '[image] [user] telah mengirim : [count] posts'; // dapat menggunakan [#] (=position)//
+var sizeAvatar = 20;
+var cropAvatar = true;
+var urlNoAvatar = "http://lh4.googleusercontent.com/-069mnq7DV_g/TvgRrBI_JaI/AAAAAAAAAic/Iot55vywnYw/s"+sizeAvatar+"/avatar_blue_m_96.png"; 
+// http://www.blogger.com/img/avatar_blue_m_96.png // 
+// untuk IEs & IE :
+if(!Array.indexOf) { 
+ Array.prototype.indexOf=function(obj) {
+  for(var i=0;i<this.length;i++) if(this[i]==obj) return i;
+  return -1;
+}}
+function replaceAuthorVars(text, item, position)
+{
+  if(!item || !item.author) return text;
+  var author = item.author;
+
+  var authorUri = "";
+  if(author.uri && author.uri.$t != "")
+    authorUri = author.uri.$t;
+
+  var avaimg = urlNoAvatar;
+  var bloggerprofile = "http://www.blogger.com/profile/";
+  if(author.gd$image && author.gd$image.src && (authorUri.substr(0,bloggerprofile.length) == bloggerprofile || authorUri == ""))
+    avaimg = author.gd$image.src;
+  else {
+    var parseurl = document.createElement('a');
+    if(authorUri != "") {
+      parseurl.href = authorUri;
+      avaimg = 'http://www.google.com/s2/favicons?domain=' + parseurl.hostname;
+    }
+  }
+  if(avaimg == "http://img2.blogblog.com/img/b16-rounded.gif" && urlNoAvatar != "")
+    avaimg = urlNoAvatar;
+  var newsize="s"+sizeAvatar;
+  avaimg = avaimg.replace(/\/s\d\d+-c\//, "/"+newsize+"-c/");
+  if(cropAvatar) newsize+="-c";
+  avaimg = avaimg.replace(/\/s\d\d+(-c){0,1}\//, "/"+newsize+"/");
+
+  var authorName = author.name.$t;
+  var imgcode = '<img class="author-avatar" height="'+sizeAvatar+'" width="'+sizeAvatar+'" title="'+authorName+'" src="'+avaimg+'" />';
+  if(authorUri!="") imgcode = '<a href="'+authorUri+'">'+imgcode+'</a>';
+
+  if(maxUserNameLength > 3 && authorName.length > maxUserNameLength)
+    authorName = authorName.substr(0, maxUserNameLength-3) + "...";
+  var authorcode = authorName;
+  if(authorUri!="") authorcode = '<a class="profile-name-link" href="'+authorUri+'">'+authorcode+'</a>';
+
+  text = text.replace('[user]', authorcode);
+  text = text.replace('[image]', imgcode);
+  text = text.replace('[#]', position);
+  text = text.replace('[count]', item.count);
+  return text;
+}
+var authors = {};
+var ndxbase = 1;
+function showAuthors(json) {
+  for(var i = 0 ; i < json.feed.entry.length ; i++ ) {
+    var entry = json.feed.entry[i];
+    var authorUri = "";
+    if(entry.author[0].uri && entry.author[0].uri.$t != "")
+      authorUri = entry.author[0].uri.$t;
+
+    var authorName = entry.author[0].name.$t;
+
+    var hash=entry.author[0].name.$t + "-" + authorUri;
+    if(authors[hash])
+      authors[hash].count++;
+    else {
+      var aut = new Object();
+      aut.author = entry.author[0];
+      aut.count = 1;
+      authors[hash] = aut;
+    }
+  }
+  if(json.feed.entry.length == 500) {
+    ndxbase += 500;
+    document.write('<script type="text/javascript" src="http://'+window.location.hostname+'/feeds/posts/default?redirect=false&max-results=500&start-index='+ndxbase+'&alt=json-in-script&callback=showAuthors"></'+'script>');
+    return;
+  }
+  var tuplear = [];
+  for(var key in authors) tuplear.push([key, authors[key]]);
+
+  tuplear.sort(function(a, b) {
+    if(b[1].count-a[1].count)
+        return b[1].count-a[1].count;
+    return (a[1].author.name.$t.toLowerCase() < b[1].author.name.$t.toLowerCase()) ? -1 : 1;
+  });
+
+  // hasil authors:
+  for(var i = 0; i < tuplear.length ; i++) {
+    var item = tuplear[i][1];
+    document.write('<di'+'v class="author-line">');
+    document.write(replaceAuthorVars(txtAuthorLine, item, i+1));
+    document.write('</d'+'iv>');
+  }
+}  
+document.write('<script type="text/javascript" src="http://'+window.location.hostname+'/feeds/posts/default?redirect=false&max-results=500&alt=json-in-script&callback=showAuthors"></'+'script>');
+</script>
